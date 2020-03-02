@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/tseemann/cgmlst-dists.svg?branch=master)](https://travis-ci.org/tseemann/cgmlst-dists)
 [![License: GPLv3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Language: C99](https://img.shields.io/badge/Language-ANSI_C-orangered.svg)](https://en.wikipedia.org/wiki/ANSI_C))
+[![Language: C99](https://img.shields.io/badge/Language-ANSI_C-orangered.svg)](https://en.wikipedia.org/wiki/ANSI_C)
 
 # cgmlst-dists
 
@@ -34,6 +34,11 @@ S3      2       4       0       1       1
 S4      3       3       1       0       1
 S5      1       3       1       1       0
 ```
+
+Any allelle calls that are not positive integers are converted to zero.
+The distance is the 
+[hamming distance](https://en.wikipedia.org/wiki/Hamming_distance)
+but with zeroes excluded.
 
 ## Installation
 
