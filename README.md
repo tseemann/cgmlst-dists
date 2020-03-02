@@ -1,7 +1,6 @@
 [![Build Status](https://travis-ci.org/tseemann/cgmlst-dists.svg?branch=master)](https://travis-ci.org/tseemann/cgmlst-dists)
 [![License: GPLv3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Language: C99](https://img.shields.io/badge/Language-C99-orangered.svg)](https://en.wikipedia.org/wiki/C99)
-<!-- ![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.1411986.svg) -->
+[![Language: C99](https://img.shields.io/badge/Language-ANSI_C-orangered.svg)](https://en.wikipedia.org/wiki/ANSI_C))
 
 # cgmlst-dists
 
@@ -21,7 +20,7 @@ S5      1       2       ASM     2       1       3
 
 % cgmlst-dists test/boring.tab > distances.tab
 
-This is cgmlst-dists 0.1.0
+This is cgmlst-dists 0.2.0
 Loaded 5 samples x 6 allele calls
 Calulating distances... 100.00%
 Done.
@@ -78,6 +77,7 @@ OPTIONS
   -v    Print version and exit
   -q    Quiet mode; do not print progress information
   -c    Use comma instead of tab in output
+  -m N  Output: 1=lower-tri 2=upper-tri 3=full [3]
 URL
   https://github.com/tseemann/cgmlst-dists
 ```
@@ -87,7 +87,7 @@ URL
 Prints the name and version separated by a space in standard Unix fashion.
 
 ```
-cgmlst-dists 0.1.0
+cgmlst-dists 0.2.0
 ```
 
 ### `cgmlst-dists -q` (quiet mode)
@@ -97,6 +97,15 @@ Don't print informational messages, only errors.
 ### `cgmlst-dists -c` (CSV mode)
 
 Use a comma instead of a tab in the output table.
+
+### `cgmlst-dists -m` (output matrix format)
+
+The output matrix is diagonal symmetric because _dist(A,B)=dist(B,A)_.
+This means we only calculate half the matrix and mirror it.
+You can choose to output the lower triangle, upper triangle, or both:
+* `-m 1` lower triangle only
+* `-m 2` upper triangle only
+* `-m 3` both triangle / full matrix (default)
 
 
 

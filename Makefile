@@ -27,4 +27,6 @@ check: $(EXE)
 	./$(EXE) /dev/null || true
 	./$(EXE) -q $(TESTDIR)/chewie.tab
 	./$(EXE) -c $(TESTDIR)/boring.tab
+	./$(EXE) -m 1 $(TESTDIR)/100.tab > /dev/null
+	
 	
