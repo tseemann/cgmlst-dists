@@ -3,12 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <sys/stat.h>
+#include <ctype.h>
 #include <sys/types.h>
 
-#define VERSION "0.2.0"
+#define VERSION "0.3.0"
 #define EXENAME "cgmlst-dists"
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
+//#define DEBUG
 
 const int MAX_LINE = 1E5;
 const int MAX_ASM  = 1E5;
@@ -60,6 +61,26 @@ void* calloc_safe(size_t nmemb, size_t size)
 }
 
 //------------------------------------------------------------------------
+
+void cleanup_line(char* str)
+{
+  char* s = str;
+#ifdef DEBUG
+  fprintf(stderr, "BEFORE: %s", str);
+#endif
+  // skip over first column (ID)
+  while (*s != 0 && *s != '\t') s++;
+
+  // replace alpha with space so atoi() works
+  while (*s++) {
+    if (isalpha(*s)) *s = ' ';
+  }
+#ifdef DEBUG
+  fprintf(stderr, "AFTER : %s", str);
+#endif
+}
+
+//------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
   // parse command line parameters
@@ -108,7 +129,12 @@ int main(int argc, char* argv[])
   int row = -1;
   int ncol = 0;
    
-  while (fgets(buf, MAX_LINE, in)) {
+  while (fgets(buf, MAX_LINE, in))
+  {
+    // cleanup non-numerics in NON-HEADER lines
+    if (row >=0) cleanup_line(buf);
+
+    // scan for tab separated values
     char* save;
     char* s = strtok_r(buf, DELIMS, &save);
     int col = -1;
