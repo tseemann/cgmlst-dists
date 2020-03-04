@@ -164,8 +164,12 @@ int main(int argc, char* argv[])
     }
     row++;
 //    if (!quiet) fprintf(stderr, "row %d has %d cols\n", row, col) ;
-    if (!quiet) fprintf(stderr, "\rLoading row %d", row);
+    if (!quiet) fprintf(stderr, "\rLoaded row %d", row);
     if (row==0) ncol = col;
+    if (row >= MAX_ASM) {
+      fprintf(stderr, "Too many rows, can only handle %d\n", MAX_ASM);
+      exit(EXIT_FAILURE);
+    }
     
     if (col != ncol) {
       fprintf(stderr, "\nERROR: row %d had %d cols, expected %d\n", row+1, col+1, ncol);
