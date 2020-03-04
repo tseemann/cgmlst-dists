@@ -6,16 +6,16 @@
 #include <ctype.h>
 #include <sys/types.h>
 
-#define VERSION "0.3.1"
+#define VERSION "0.3.2"
 #define EXENAME "cgmlst-dists"
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
 //#define DEBUG
 
 const int MAX_LINE = 1E5;
 const int MAX_ASM  = 1E5;
-const char* DELIMS = "\n\r\t ";
+const char* DELIMS = "\n\r\t";
 const int IGNORE_ALLELE = 0;
-
+const char REPLACE_CHAR = ' ';
 
 //------------------------------------------------------------------------
 void show_help(int retcode)
@@ -75,7 +75,7 @@ void cleanup_line(char* str)
 
   // replace alpha with space so atoi() works
   while (*s++) {
-    if (isalpha(*s)) *s = ' ';
+    if (isalpha(*s)) *s = REPLACE_CHAR;
   }
 #ifdef DEBUG
   fprintf(stderr, "AFTER : %s", str);
@@ -145,6 +145,10 @@ int main(int argc, char* argv[])
       //fprintf(stderr, "DEBUG: row=%d col=%d s='%s'\n", row, col, s);
       if (row >= 0) {
         if (col < 0) {
+          if (strlen(s)==0) {
+            fprintf(stderr, "row %d has an empty ID in first column\n", row+1);
+            exit(EXIT_FAILURE);
+          }
           id[row] = strdup(s);
           call[row] = (int*) calloc_safe(ncol, sizeof(int*));
         }
@@ -162,6 +166,11 @@ int main(int argc, char* argv[])
 //    if (!quiet) fprintf(stderr, "row %d has %d cols\n", row, col) ;
     if (!quiet) fprintf(stderr, "\rLoading row %d", row);
     if (row==0) ncol = col;
+    
+    if (col != ncol) {
+      fprintf(stderr, "\nERROR: row %d had %d cols, expected %d\n", row+1, col+1, ncol);
+      exit(-1);
+    }
   }
   int nrow = row;
   fclose(in);
