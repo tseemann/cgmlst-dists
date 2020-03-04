@@ -83,6 +83,7 @@ OPTIONS
   -q    Quiet mode; do not print progress information
   -c    Use comma instead of tab in output
   -m N  Output: 1=lower-tri 2=upper-tri 3=full [3]
+  -x N  Stop calculating beyond this distance [9999]
 URL
   https://github.com/tseemann/cgmlst-dists
 ```
@@ -92,7 +93,7 @@ URL
 Prints the name and version separated by a space in standard Unix fashion.
 
 ```
-cgmlst-dists 0.2.0
+cgmlst-dists 0.4.0
 ```
 
 ### `cgmlst-dists -q` (quiet mode)
@@ -103,7 +104,7 @@ Don't print informational messages, only errors.
 
 Use a comma instead of a tab in the output table.
 
-### `cgmlst-dists -m` (output matrix format)
+### `cgmlst-dists -m N` (output matrix format)
 
 The output matrix is diagonal symmetric because _dist(A,B)=dist(B,A)_.
 This means we only calculate half the matrix and mirror it.
@@ -112,7 +113,12 @@ You can choose to output the lower triangle, upper triangle, or both:
 * `-m 2` upper triangle only
 * `-m 3` both triangle / full matrix (default)
 
+### `cgmlst-dists -x N` (short-circuit divergent pairs)
 
+The slowest part of the algorithm is calculating the distance
+between two allele vectors. This option will stop comparing as
+soon as the distance (differences) exceeds `-x`, and return
+the distance as `-x`.
 
 ## Issues
 

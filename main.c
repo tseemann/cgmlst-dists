@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 
-#define VERSION "0.3.0"
+#define VERSION "0.3.1"
 #define EXENAME "cgmlst-dists"
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
 //#define DEBUG
@@ -31,6 +31,7 @@ void show_help(int retcode)
       "  -q\tQuiet mode; do not print progress information\n"
       "  -c\tUse comma instead of tab in output\n"
       "  -m N\tOutput: 1=lower-tri 2=upper-tri 3=full [3]\n"
+      "  -x N\tStop calculating beyond this distance [9999]\n"
 //      "  -t N\tNumber of threads to use [1]\n"
       "URL\n  %s\n"};
   fprintf(out, str, EXENAME, GITHUB_URL);
@@ -38,12 +39,13 @@ void show_help(int retcode)
 }
 
 //------------------------------------------------------------------------
-int distance(const int* restrict a, const int* restrict b, size_t len)
+int distance(const int* restrict a, const int* restrict b, size_t len, int maxdiff)
 {
   int diff=0;
   for (size_t i=0; i < len; i++) {
     if (a[i] != b[i] && a[i] != IGNORE_ALLELE && b[i] != IGNORE_ALLELE) {
       diff++;
+      if (diff >= maxdiff) return maxdiff;
     }
   }
   return diff;
@@ -84,14 +86,15 @@ void cleanup_line(char* str)
 int main(int argc, char* argv[])
 {
   // parse command line parameters
-  int opt, quiet = 0, csv = 0, threads = 1, mode = 3;
-  while ((opt = getopt(argc, argv, "hqcvm:t:")) != -1) {
+  int opt, quiet = 0, csv = 0, threads = 1, mode = 3, maxdiff = 9999;
+  while ((opt = getopt(argc, argv, "hqcvm:t:x:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet = 1; break;
       case 'c': csv = 1; break;
       case 't': threads = atoi(optarg); break;
       case 'm': mode = atoi(optarg); break;
+      case 'x': maxdiff = atoi(optarg); break;
       case 'v': printf("%s %s\n", EXENAME, VERSION); exit(EXIT_SUCCESS);
       default: show_help(EXIT_FAILURE);
     }
@@ -172,7 +175,7 @@ int main(int argc, char* argv[])
   for (int j=0; j < nrow; j++) {
     if (!quiet) fprintf(stderr, "\rCalculating distances: %.2f%%", (j+1)*100.0/nrow);
     for (int i=0; i < j; i++) {
-      int d = distance(call[j], call[i], ncol);
+      int d = distance(call[j], call[i], ncol, maxdiff);
       dist[j*nrow+i] = dist[i*nrow+j] = d;  // matrix is diagonal symetric
     }
   }
