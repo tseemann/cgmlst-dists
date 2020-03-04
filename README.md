@@ -51,7 +51,7 @@ brew install brewsci/bio/cgmlst-dists  # COMING IN APRIL 2020
 
 ### Bioconda
 ```
-conda install -c bioconda -c conda-forge cgmlst-dists  # COMING SOON
+conda install -c bioconda cgmlst-dists
 ```
 
 ### Source
