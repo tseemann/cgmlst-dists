@@ -4,7 +4,8 @@
 
 # cgmlst-dists
 
-Calculate distance matrix from cgMLST allele call tables of ChewBBACA
+Calculate distance matrix from 
+cgMLST allele call tables of ChewBBACA
 
 ## Quick Start
 
@@ -12,16 +13,17 @@ Calculate distance matrix from cgMLST allele call tables of ChewBBACA
 % cat test/boring.tab
 
 FILE    G1      G2      G3      G4      G5      G6
-S1      1       2       3       2       1       5
+S1      1       INF-2   3       2       1       5
 S2      1       1       1       1       NIPH    5
 S3      1       2       3       4       1       3
 S4      1       LNF     2       4       1       3
 S5      1       2       ASM     2       1       3
+S6      2       INF-8   3       PLOT3   PLOT5   3     
 
 % cgmlst-dists test/boring.tab > distances.tab
 
-This is cgmlst-dists 0.2.0
-Loaded 5 samples x 6 allele calls
+This is cgmlst-dists 0.4.0
+Loaded 6 samples x 6 allele calls
 Calulating distances... 100.00%
 Done.
 
@@ -33,6 +35,7 @@ S2      3       0       4       3       3
 S3      2       4       0       1       1
 S4      3       3       1       0       1
 S5      1       3       1       1       0
+S6      3       4       2       2       2
 ```
 
 Any allelle calls that are not positive integers are converted to zero.
@@ -40,13 +43,19 @@ The distance is the
 [hamming distance](https://en.wikipedia.org/wiki/Hamming_distance)
 but with zeroes excluded.
 
+It works by replacing any alphabet characters,
+and the strings `PLOT5` and `PLOT3` with spaces.
+It then converts the remaining tab separated
+values to integers and ignoring negative signs.
+Anything weird is set to zero.
+
 ## Installation
 
 `cgmlst-dists` is written in C and has no other dependencies.
 
 ### Homebrew
 ```
-brew install brewsci/bio/cgmlst-dists  # COMING IN APRIL 2020
+brew install brewsci/bio/cgmlst-dists  # COMING IN NOV 2020
 ```
 
 ### Bioconda
