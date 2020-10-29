@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 
-#define VERSION "0.3.2"
+#define VERSION "0.4.0"
 #define EXENAME "cgmlst-dists"
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
 //#define DEBUG
@@ -64,6 +64,29 @@ void* calloc_safe(size_t nmemb, size_t size)
 
 //------------------------------------------------------------------------
 
+int str_replace(char* str, char* old, char* new)
+{
+  size_t sl = strlen(str);
+  size_t ol = strlen(old);
+  size_t nl = strlen(new);
+  if (ol < 1 || nl < 1 || ol != nl || sl < ol) {
+    fprintf(stderr, "ERROR: str_replace(%lu,%lu,%lu)\n", sl, ol, nl);
+    exit(EXIT_FAILURE);
+  }
+
+  // char *strstr(const char *haystack, const char *needle);
+  char* p = NULL;
+  while ( (p = strstr(str, old)) != NULL ) {
+    // char *strncpy(char *dest, const char *src, size_t n);
+    strncpy(p, new, nl);
+  }
+  
+  return sl;
+}
+
+
+//------------------------------------------------------------------------
+
 void cleanup_line(char* str)
 {
   char* s = str;
@@ -73,9 +96,18 @@ void cleanup_line(char* str)
   // skip over first column (ID)
   while (*s != 0 && *s != '\t') s++;
 
+  // CHewbacca codes
+  // LINF NIPH INF-nnn PLOT3 PLOT5 ASM
+  // these two are special as they end in numbers
+  // and don't want to confuse with INF-xxx
+  str_replace(s, "PLOT3", "    0");
+  str_replace(s, "PLOT5", "    0");
+
   // replace alpha with space so atoi() works
   while (*s++) {
-    if (isalpha(*s)) *s = REPLACE_CHAR;
+    if (isalpha(*s)) {
+      *s = REPLACE_CHAR;
+    }
   }
 #ifdef DEBUG
   fprintf(stderr, "AFTER : %s", str);
@@ -153,7 +185,8 @@ int main(int argc, char* argv[])
           call[row] = (int*) calloc_safe(ncol, sizeof(int*));
         }
         else {
-          call[row][col] = atoi(s);
+          // INF-xxxx are returned as -ve numbers
+          call[row][col] = abs( atoi(s) );
         }
       }
       else {
