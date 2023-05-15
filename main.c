@@ -9,7 +9,7 @@
 #define VERSION "0.4.0"
 #define EXENAME "cgmlst-dists"
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
-//#define DEBUG
+#define DEBUG
 
 const int MAX_LINE = 1E5;
 const int MAX_ASM  = 1E5;
@@ -32,6 +32,7 @@ void show_help(int retcode)
       "  -c\tUse comma instead of tab in output\n"
       "  -m N\tOutput: 1=lower-tri 2=upper-tri 3=full [3]\n"
       "  -x N\tStop calculating beyond this distance [9999]\n"
+      "  -H\tAdd this flag if chewbbaca was run with the --hash-profiles parameter\n"
 //      "  -t N\tNumber of threads to use [1]\n"
       "URL\n  %s\n"};
   fprintf(out, str, EXENAME, GITHUB_URL);
@@ -39,7 +40,7 @@ void show_help(int retcode)
 }
 
 //------------------------------------------------------------------------
-int distance(const int* restrict a, const int* restrict b, size_t len, int maxdiff)
+int distance(const unsigned long* restrict a, const unsigned long* restrict b, size_t len, int maxdiff)
 {
   int diff=0;
   for (size_t i=0; i < len; i++) {
@@ -87,7 +88,7 @@ int str_replace(char* str, char* old, char* new)
 
 //------------------------------------------------------------------------
 
-void cleanup_line(char* str)
+void cleanup_line(char* str, const int use_hashed_profiles)
 {
   char* s = str;
 #ifdef DEBUG
@@ -102,9 +103,13 @@ void cleanup_line(char* str)
   // and don't want to confuse with INF-xxx
   str_replace(s, "PLOT3", "    0");
   str_replace(s, "PLOT5", "    0");
+  if (use_hashed_profiles)  {
+    str_replace(s, "-", "0");
+    str_replace(s, "NA", " 0");
+  }
 
   // replace alpha with space so atoi() works
-  while (*s++) {
+  while (!use_hashed_profiles && *s++) {
     if (isalpha(*s)) {
       *s = REPLACE_CHAR;
     }
@@ -114,16 +119,43 @@ void cleanup_line(char* str)
 #endif
 }
 
+#include <stdio.h>
+#include <string.h>
+
+int sha1_to_int(char *sha1_str) {
+    int i, value = 0;
+    char *p;
+
+    // convert each hex digit to its integer value and accumulate
+    for (i = 0, p = sha1_str; i < 40; i++, p++) {
+        int digit;
+        if (*p >= '0' && *p <= '9') {
+            digit = *p - '0';
+        } else if (*p >= 'a' && *p <= 'f') {
+            digit = *p - 'a' + 10;
+        } else if (*p >= 'A' && *p <= 'F') {
+            digit = *p - 'A' + 10;
+        } else {
+            // error: invalid hex digit
+            return value;
+        }
+        value = (value << 4) | digit;
+    }
+    return value;
+}
+
+
 //------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
   // parse command line parameters
-  int opt, quiet = 0, csv = 0, threads = 1, mode = 3, maxdiff = 9999;
-  while ((opt = getopt(argc, argv, "hqcvm:t:x:")) != -1) {
+  int opt, quiet = 0, csv = 0, threads = 1, mode = 3, maxdiff = 9999, use_hashed_profiles = 0;
+  while ((opt = getopt(argc, argv, "hqcvHm:t:x:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet = 1; break;
       case 'c': csv = 1; break;
+      case 'H': use_hashed_profiles = 1; break;
       case 't': threads = atoi(optarg); break;
       case 'm': mode = atoi(optarg); break;
       case 'x': maxdiff = atoi(optarg); break;
@@ -159,7 +191,7 @@ int main(int argc, char* argv[])
   char* buf = (char*) calloc_safe( MAX_LINE, sizeof(char) );
 
   char** id  = (char**) calloc_safe( MAX_ASM, sizeof(char*) );
-  int** call = (int**) calloc_safe( MAX_ASM, sizeof(int*) );
+  unsigned long** call = (unsigned long**) calloc_safe( MAX_ASM, sizeof(unsigned long*) );
 
   int row = -1;
   int ncol = 0;
@@ -167,7 +199,7 @@ int main(int argc, char* argv[])
   while (fgets(buf, MAX_LINE, in))
   {
     // cleanup non-numerics in NON-HEADER lines
-    if (row >=0) cleanup_line(buf);
+    if (row >=0) cleanup_line(buf, use_hashed_profiles);
 
     // scan for tab separated values
     char* save;
@@ -182,11 +214,16 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
           }
           id[row] = strdup(s);
-          call[row] = (int*) calloc_safe(ncol, sizeof(int*));
+          call[row] = (long unsigned*) calloc_safe(ncol, sizeof(long unsigned*));
         }
         else {
           // INF-xxxx are returned as -ve numbers
-          call[row][col] = abs( atoi(s) );
+          if (use_hashed_profiles) {
+            call[row][col] = sha1_to_int(s) ;
+          }
+          else{
+            call[row][col] = abs( atoi(s) );
+          }
         }
       }
       else {
@@ -264,4 +301,3 @@ int main(int argc, char* argv[])
 }
 
 //------------------------------------------------------------------------
-
