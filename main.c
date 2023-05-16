@@ -88,7 +88,7 @@ int str_replace(char* str, char* old, char* new)
 
 //------------------------------------------------------------------------
 
-void cleanup_line(char* str, const int use_hashed_profiles)
+void cleanup_line(char* str)
 {
   char* s = str;
 #ifdef DEBUG
@@ -103,13 +103,9 @@ void cleanup_line(char* str, const int use_hashed_profiles)
   // and don't want to confuse with INF-xxx
   str_replace(s, "PLOT3", "    0");
   str_replace(s, "PLOT5", "    0");
-  if (use_hashed_profiles)  {
-    str_replace(s, "-", "0");
-    str_replace(s, "NA", " 0");
-  }
 
   // replace alpha with space so atoi() works
-  while (!use_hashed_profiles && *s++) {
+  while (*s++) {
     if (isalpha(*s)) {
       *s = REPLACE_CHAR;
     }
@@ -202,8 +198,12 @@ int main(int argc, char* argv[])
   while (fgets(buf, MAX_LINE, in))
   {
     // cleanup non-numerics in NON-HEADER lines
-    if (row >=0) cleanup_line(buf, use_hashed_profiles);
-
+    // No need to do this when hashed chewbbaca output is used.
+    // '-' and 'NA' get evaluated to 0 by sha1_to_int.
+    if (!use_hashed_profiles && row >=0){
+      cleanup_line(buf);
+    }
+    
     // scan for tab separated values
     char* save;
     char* s = strtok_r(buf, DELIMS, &save);
