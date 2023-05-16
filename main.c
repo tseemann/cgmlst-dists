@@ -40,7 +40,7 @@ void show_help(int retcode)
 }
 
 //------------------------------------------------------------------------
-int distance(const unsigned long* restrict a, const unsigned long* restrict b, size_t len, int maxdiff)
+int distance(const long long* restrict a, const long long* restrict b, size_t len, int maxdiff)
 {
   int diff=0;
   for (size_t i=0; i < len; i++) {
@@ -122,22 +122,25 @@ void cleanup_line(char* str, const int use_hashed_profiles)
 #include <stdio.h>
 #include <string.h>
 
-int sha1_to_int(char *sha1_str) {
-    int i, value = 0;
+long long sha1_to_int(char *sha1_str) {
+    // This overflows which increases the chance of a collision.
+    // This is highly unlikely this context though.
+    int i = 0;
+    long long value = 0;
     char *p;
 
     // convert each hex digit to its integer value and accumulate
     for (i = 0, p = sha1_str; i < 40; i++, p++) {
         int digit;
         if (*p >= '0' && *p <= '9') {
-            digit = *p - '0';
+          digit = *p - '0';
         } else if (*p >= 'a' && *p <= 'f') {
-            digit = *p - 'a' + 10;
+          digit = *p - 'a' + 10;
         } else if (*p >= 'A' && *p <= 'F') {
-            digit = *p - 'A' + 10;
+          digit = *p - 'A' + 10;
         } else {
-            // error: invalid hex digit
-            return value;
+          // If anything other than a hex digit is found the end of the hash is reached
+          return value;
         }
         value = (value << 4) | digit;
     }
@@ -191,7 +194,7 @@ int main(int argc, char* argv[])
   char* buf = (char*) calloc_safe( MAX_LINE, sizeof(char) );
 
   char** id  = (char**) calloc_safe( MAX_ASM, sizeof(char*) );
-  unsigned long** call = (unsigned long**) calloc_safe( MAX_ASM, sizeof(unsigned long*) );
+  long long** call = (long long**) calloc_safe( MAX_ASM, sizeof(long long*) );
 
   int row = -1;
   int ncol = 0;
@@ -214,7 +217,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
           }
           id[row] = strdup(s);
-          call[row] = (long unsigned*) calloc_safe(ncol, sizeof(long unsigned*));
+          call[row] = (long long*) calloc_safe(ncol, sizeof(long long*));
         }
         else {
           // INF-xxxx are returned as -ve numbers
