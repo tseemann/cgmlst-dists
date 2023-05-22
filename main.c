@@ -9,7 +9,7 @@
 #define VERSION "0.4.0"
 #define EXENAME "cgmlst-dists"
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
-#define DEBUG
+// #define DEBUG
 
 const int MAX_LINE = 1E5;
 const int MAX_ASM  = 1E5;
@@ -32,7 +32,7 @@ void show_help(int retcode)
       "  -c\tUse comma instead of tab in output\n"
       "  -m N\tOutput: 1=lower-tri 2=upper-tri 3=full [3]\n"
       "  -x N\tStop calculating beyond this distance [9999]\n"
-      "  -H\tAdd this flag if chewbbaca was run with the --hash-profiles parameter\n"
+      "  -H\tHashed sequence input; e.g. when chewbbaca was run with the --hash-profiles parameter\n"
 //      "  -t N\tNumber of threads to use [1]\n"
       "URL\n  %s\n"};
   fprintf(out, str, EXENAME, GITHUB_URL);
@@ -115,32 +115,30 @@ void cleanup_line(char* str)
 #endif
 }
 
-#include <stdio.h>
-#include <string.h>
+long long hex_to_int64(char *sha1_str) {
+  // Convert a hexadecimal string to a 64bit integer.
+  // This overflows which increases the chance of a collision.
+  // This is highly unlikely in this context though.
+  int i = 0;
+  long long value = 0;
+  char *p;
 
-long long sha1_to_int(char *sha1_str) {
-    // This overflows which increases the chance of a collision.
-    // This is highly unlikely this context though.
-    int i = 0;
-    long long value = 0;
-    char *p;
-
-    // convert each hex digit to its integer value and accumulate
-    for (i = 0, p = sha1_str; i < 40; i++, p++) {
-        int digit;
-        if (*p >= '0' && *p <= '9') {
-          digit = *p - '0';
-        } else if (*p >= 'a' && *p <= 'f') {
-          digit = *p - 'a' + 10;
-        } else if (*p >= 'A' && *p <= 'F') {
-          digit = *p - 'A' + 10;
-        } else {
-          // If anything other than a hex digit is found the end of the hash is reached
-          return value;
-        }
-        value = (value << 4) | digit;
-    }
-    return value;
+  // convert each hex digit to its integer value and accumulate
+  for (i = 0, p = sha1_str; i < 40; i++, p++) {
+      int digit;
+      if (*p >= '0' && *p <= '9') {
+        digit = *p - '0';
+      } else if (*p >= 'a' && *p <= 'f') {
+        digit = *p - 'a' + 10;
+      } else if (*p >= 'A' && *p <= 'F') {
+        digit = *p - 'A' + 10;
+      } else {
+        // If anything other than a hex digit is found the end of the hash is reached
+        return value;
+      }
+      value = (value << 4) | digit;
+  }
+  return value;
 }
 
 
@@ -199,11 +197,11 @@ int main(int argc, char* argv[])
   {
     // cleanup non-numerics in NON-HEADER lines
     // No need to do this when hashed chewbbaca output is used.
-    // '-' and 'NA' get evaluated to 0 by sha1_to_int.
+    // '-' and 'NA' get evaluated to 0 by hex_to_int64.
     if (!use_hashed_profiles && row >=0){
       cleanup_line(buf);
     }
-    
+
     // scan for tab separated values
     char* save;
     char* s = strtok_r(buf, DELIMS, &save);
@@ -222,7 +220,7 @@ int main(int argc, char* argv[])
         else {
           // INF-xxxx are returned as -ve numbers
           if (use_hashed_profiles) {
-            call[row][col] = sha1_to_int(s) ;
+            call[row][col] = hex_to_int64(s) ;
           }
           else{
             call[row][col] = abs( atoi(s) );
