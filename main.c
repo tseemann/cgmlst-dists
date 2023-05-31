@@ -11,7 +11,7 @@
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
 // #define DEBUG
 
-const int MAX_LINE = 1E5;
+const int MAX_LINE = 1E6;
 const int MAX_ASM  = 1E5;
 const char* DELIMS = "\n\r\t";
 const int IGNORE_ALLELE = 0;
