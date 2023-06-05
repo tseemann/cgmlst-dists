@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #define VERSION "0.4.0"
@@ -40,7 +41,7 @@ void show_help(int retcode)
 }
 
 //------------------------------------------------------------------------
-int distance(const long long* restrict a, const long long* restrict b, size_t len, int maxdiff)
+int distance(const uint64_t * restrict a, const uint64_t * restrict b, size_t len, int maxdiff)
 {
   int diff=0;
   for (size_t i=0; i < len; i++) {
@@ -115,12 +116,12 @@ void cleanup_line(char* str)
 #endif
 }
 
-long long hex_to_int64(char *sha1_str) {
+uint64_t  hex_to_int64(char *sha1_str) {
   // Convert a hexadecimal string to a 64bit integer.
   // This overflows which increases the chance of a collision.
   // This is highly unlikely in this context though.
   int i = 0;
-  long long value = 0;
+  uint64_t  value = 0;
   char *p;
 
   // convert each hex digit to its integer value and accumulate
@@ -188,7 +189,7 @@ int main(int argc, char* argv[])
   char* buf = (char*) calloc_safe( MAX_LINE, sizeof(char) );
 
   char** id  = (char**) calloc_safe( MAX_ASM, sizeof(char*) );
-  long long** call = (long long**) calloc_safe( MAX_ASM, sizeof(long long*) );
+  uint64_t ** call = (uint64_t **) calloc_safe( MAX_ASM, sizeof(uint64_t *) );
 
   int row = -1;
   int ncol = 0;
@@ -215,7 +216,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
           }
           id[row] = strdup(s);
-          call[row] = (long long*) calloc_safe(ncol, sizeof(long long*));
+          call[row] = (uint64_t *) calloc_safe(ncol, sizeof(uint64_t *));
         }
         else {
           // INF-xxxx are returned as -ve numbers
