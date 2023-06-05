@@ -4,14 +4,15 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #define VERSION "0.4.0"
 #define EXENAME "cgmlst-dists"
 #define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
-//#define DEBUG
+// #define DEBUG
 
-const int MAX_LINE = 1E5;
+const int MAX_LINE = 1E6;
 const int MAX_ASM  = 1E5;
 const char* DELIMS = "\n\r\t";
 const int IGNORE_ALLELE = 0;
@@ -32,6 +33,7 @@ void show_help(int retcode)
       "  -c\tUse comma instead of tab in output\n"
       "  -m N\tOutput: 1=lower-tri 2=upper-tri 3=full [3]\n"
       "  -x N\tStop calculating beyond this distance [9999]\n"
+      "  -H\tHashed sequence input; e.g. when chewbbaca was run with the --hash-profiles parameter\n"
 //      "  -t N\tNumber of threads to use [1]\n"
       "URL\n  %s\n"};
   fprintf(out, str, EXENAME, GITHUB_URL);
@@ -39,7 +41,7 @@ void show_help(int retcode)
 }
 
 //------------------------------------------------------------------------
-int distance(const int* restrict a, const int* restrict b, size_t len, int maxdiff)
+int distance(const uint64_t * restrict a, const uint64_t * restrict b, size_t len, int maxdiff)
 {
   int diff=0;
   for (size_t i=0; i < len; i++) {
@@ -114,16 +116,44 @@ void cleanup_line(char* str)
 #endif
 }
 
+uint64_t  hex_to_int64(char *sha1_str) {
+  // Convert a hexadecimal string to a 64bit integer.
+  // This overflows which increases the chance of a collision.
+  // This is highly unlikely in this context though.
+  int i = 0;
+  uint64_t  value = 0;
+  char *p;
+
+  // convert each hex digit to its integer value and accumulate
+  for (i = 0, p = sha1_str; i < 40; i++, p++) {
+      int digit;
+      if (*p >= '0' && *p <= '9') {
+        digit = *p - '0';
+      } else if (*p >= 'a' && *p <= 'f') {
+        digit = *p - 'a' + 10;
+      } else if (*p >= 'A' && *p <= 'F') {
+        digit = *p - 'A' + 10;
+      } else {
+        // If anything other than a hex digit is found the end of the hash is reached
+        return value;
+      }
+      value = (value << 4) | digit;
+  }
+  return value;
+}
+
+
 //------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
   // parse command line parameters
-  int opt, quiet = 0, csv = 0, threads = 1, mode = 3, maxdiff = 9999;
-  while ((opt = getopt(argc, argv, "hqcvm:t:x:")) != -1) {
+  int opt, quiet = 0, csv = 0, threads = 1, mode = 3, maxdiff = 9999, use_hashed_profiles = 0;
+  while ((opt = getopt(argc, argv, "hqcvHm:t:x:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet = 1; break;
       case 'c': csv = 1; break;
+      case 'H': use_hashed_profiles = 1; break;
       case 't': threads = atoi(optarg); break;
       case 'm': mode = atoi(optarg); break;
       case 'x': maxdiff = atoi(optarg); break;
@@ -159,7 +189,7 @@ int main(int argc, char* argv[])
   char* buf = (char*) calloc_safe( MAX_LINE, sizeof(char) );
 
   char** id  = (char**) calloc_safe( MAX_ASM, sizeof(char*) );
-  int** call = (int**) calloc_safe( MAX_ASM, sizeof(int*) );
+  uint64_t ** call = (uint64_t **) calloc_safe( MAX_ASM, sizeof(uint64_t *) );
 
   int row = -1;
   int ncol = 0;
@@ -167,7 +197,11 @@ int main(int argc, char* argv[])
   while (fgets(buf, MAX_LINE, in))
   {
     // cleanup non-numerics in NON-HEADER lines
-    if (row >=0) cleanup_line(buf);
+    // No need to do this when hashed chewbbaca output is used.
+    // '-' and 'NA' get evaluated to 0 by hex_to_int64.
+    if (!use_hashed_profiles && row >=0){
+      cleanup_line(buf);
+    }
 
     // scan for tab separated values
     char* save;
@@ -182,11 +216,16 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
           }
           id[row] = strdup(s);
-          call[row] = (int*) calloc_safe(ncol, sizeof(int*));
+          call[row] = (uint64_t *) calloc_safe(ncol, sizeof(uint64_t *));
         }
         else {
           // INF-xxxx are returned as -ve numbers
-          call[row][col] = abs( atoi(s) );
+          if (use_hashed_profiles) {
+            call[row][col] = hex_to_int64(s) ;
+          }
+          else{
+            call[row][col] = abs( atoi(s) );
+          }
         }
       }
       else {
@@ -264,4 +303,3 @@ int main(int argc, char* argv[])
 }
 
 //------------------------------------------------------------------------
-
