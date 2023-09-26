@@ -16,5 +16,5 @@ make check
 # Example of usage
 
 ```console
-./cgmlst-dists-64 test/100.tab > 100output.tab
+./cgmlst-dists test/100.tab > 100output.tab
 ```
