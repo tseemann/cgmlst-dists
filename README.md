@@ -1,6 +1,6 @@
 # Description
 
-This is a fork of the original cgmlst-dists project by Tseemann (https://github.com/tseemann/cgmlst-dists).
+This is a fork of the original cgmlst-dists project by Torsten Seemann (https://github.com/tseemann/cgmlst-dists).
 
 This version allows to manage large input files and bypasses the Integer Overflow issue when the calculation of the final memory size of the distance vector is greater than MAX_INT.
 
