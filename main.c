@@ -5,20 +5,21 @@
 #include <getopt.h>
 #include <ctype.h>
 #include <sys/types.h>
+#include <inttypes.h>
 
 #define VERSION "0.4.0"
 #define EXENAME "cgmlst-dists"
-#define GITHUB_URL "https://github.com/tseemann/cgmlst-dists"
+#define GITHUB_URL "https://github.com/genpat-it/cgmlst-dists"
 //#define DEBUG
 
-const int MAX_LINE = 1E5;
-const int MAX_ASM  = 1E5;
+const int32_t MAX_LINE = 1E5;
+const int32_t MAX_ASM  = 1E5;
 const char* DELIMS = "\n\r\t";
-const int IGNORE_ALLELE = 0;
+const uint8_t IGNORE_ALLELE = 0;
 const char REPLACE_CHAR = ' ';
 
 //------------------------------------------------------------------------
-void show_help(int retcode)
+void show_help(uint32_t retcode)
 {
   FILE* out = (retcode == EXIT_SUCCESS ? stdout : stderr);
 
@@ -39,9 +40,9 @@ void show_help(int retcode)
 }
 
 //------------------------------------------------------------------------
-int distance(const int* restrict a, const int* restrict b, size_t len, int maxdiff)
+uint32_t distance(const uint32_t* restrict a, const uint32_t* restrict b, size_t len, uint32_t maxdiff)
 {
-  int diff=0;
+  uint32_t diff=0;
   for (size_t i=0; i < len; i++) {
     if (a[i] != b[i] && a[i] != IGNORE_ALLELE && b[i] != IGNORE_ALLELE) {
       diff++;
@@ -64,7 +65,7 @@ void* calloc_safe(size_t nmemb, size_t size)
 
 //------------------------------------------------------------------------
 
-int str_replace(char* str, char* old, char* new)
+uint32_t str_replace(char* str, char* old, char* new)
 {
   size_t sl = strlen(str);
   size_t ol = strlen(old);
@@ -115,10 +116,10 @@ void cleanup_line(char* str)
 }
 
 //------------------------------------------------------------------------
-int main(int argc, char* argv[])
+int32_t main(int argc, char* argv[])
 {
   // parse command line parameters
-  int opt, quiet = 0, csv = 0, threads = 1, mode = 3, maxdiff = 9999;
+  int32_t opt, quiet = 0, csv = 0, threads = 1, mode = 3, maxdiff = 9999;
   while ((opt = getopt(argc, argv, "hqcvm:t:x:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
@@ -159,10 +160,10 @@ int main(int argc, char* argv[])
   char* buf = (char*) calloc_safe( MAX_LINE, sizeof(char) );
 
   char** id  = (char**) calloc_safe( MAX_ASM, sizeof(char*) );
-  int** call = (int**) calloc_safe( MAX_ASM, sizeof(int*) );
+  uint32_t** call = (uint32_t**) calloc_safe( MAX_ASM, sizeof(uint32_t*) );
 
-  int row = -1;
-  int ncol = 0;
+  int32_t row = -1;
+  uint32_t ncol = 0;
    
   while (fgets(buf, MAX_LINE, in))
   {
@@ -172,7 +173,7 @@ int main(int argc, char* argv[])
     // scan for tab separated values
     char* save;
     char* s = strtok_r(buf, DELIMS, &save);
-    int col = -1;
+    int32_t col = -1;
     while (s) {
       //fprintf(stderr, "DEBUG: row=%d col=%d s='%s'\n", row, col, s);
       if (row >= 0) {
@@ -182,7 +183,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
           }
           id[row] = strdup(s);
-          call[row] = (int*) calloc_safe(ncol, sizeof(int*));
+          call[row] = (uint32_t*) calloc_safe(ncol, sizeof(uint32_t*));
         }
         else {
           // INF-xxxx are returned as -ve numbers
@@ -209,19 +210,19 @@ int main(int argc, char* argv[])
       exit(-1);
     }
   }
-  int nrow = row;
+  int64_t nrow = row;
   fclose(in);
   
   // what we collected
-  if (!quiet) fprintf(stderr, "\rLoaded %d samples x %d allele calls\n", nrow, ncol);
+  if (!quiet) fprintf(stderr, "\rLoaded %ld samples x %d allele calls\n", nrow, ncol);
 
   // build an output matrix (one dimensional j*nrow+i access)
-  int* dist = calloc_safe(nrow*nrow, sizeof(int));
+  uint32_t* dist = calloc_safe(nrow*nrow, sizeof(uint32_t));
   
-  for (int j=0; j < nrow; j++) {
+  for (int64_t j=0; j < nrow; j++) {
     if (!quiet) fprintf(stderr, "\rCalculating distances: %.2f%%", (j+1)*100.0/nrow);
-    for (int i=0; i < j; i++) {
-      int d = distance(call[j], call[i], ncol, maxdiff);
+    for (int64_t i=0; i < j; i++) {
+      uint32_t d = distance(call[j], call[i], ncol, maxdiff);
       dist[j*nrow+i] = dist[i*nrow+j] = d;  // matrix is diagonal symetric
     }
   }
@@ -231,25 +232,25 @@ int main(int argc, char* argv[])
  
   // Print header row
   char sep = csv ? ',' : '\t';
-  for (int j=0; j < nrow; j++) {
+  for (uint32_t j=0; j < nrow; j++) {
     if (j==0) printf(EXENAME);
     printf("%c%s", sep, id[j]);
   }
   printf("\n");
 
   // Print matrix
-  for (int j=0; j < nrow; j++) {
+  for (int64_t j=0; j < nrow; j++) {
     printf("%s", id[j]);
-    int start = (mode & 1) ?    0 : j   ;  // upper?
-    int end   = (mode & 2) ? nrow : j+1 ;  // lower?
-    for (int i=start; i < end; i++) {
+    uint32_t start = (mode & 1) ?    0 : j   ;  // upper?
+    uint32_t end   = (mode & 2) ? nrow : j+1 ;  // lower?
+    for (int64_t i=start; i < end; i++) {
       printf("%c%d", sep, dist[j*nrow + i]);
     }
     printf("\n");
   }
 
   // free RAM
-  for (int i=0; i < nrow; i++) {
+  for (uint32_t i=0; i < nrow; i++) {
     free( id[i] );
     free( call[i] );
   }
@@ -264,4 +265,3 @@ int main(int argc, char* argv[])
 }
 
 //------------------------------------------------------------------------
-
