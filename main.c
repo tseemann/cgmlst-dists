@@ -57,9 +57,14 @@ int distance(const int* restrict a, const int* restrict b, size_t len, int maxdi
 //------------------------------------------------------------------------
 void* calloc_safe(size_t nmemb, size_t size) 
 {
+  if (size && nmemb > ((size_t)-1) / size) {
+    fprintf(stderr, "ERROR: allocation size overflow (%zu x %zu bytes)\n", nmemb, size);
+    exit(EXIT_FAILURE);
+  }
+  size_t bytes = nmemb * size;
   void* ptr = calloc(nmemb, size);
   if (ptr == NULL) {
-    fprintf(stderr, "ERROR: could not allocate %ld kb RAM\n", (nmemb*size)>>10);
+    fprintf(stderr, "ERROR: could not allocate %zu kb RAM\n", bytes>>10);
     exit(EXIT_FAILURE);
   }
   return ptr;
@@ -193,7 +198,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
           }
           id[row] = strdup(s);
-          call[row] = (int*) calloc_safe(ncol, sizeof(int*));
+          call[row] = (int*) calloc_safe(ncol, sizeof(int));
         }
         else {
           // INF-xxxx are returned as -ve numbers
@@ -226,20 +231,10 @@ int main(int argc, char* argv[])
   // what we collected
   if (!quiet) fprintf(stderr, "\rLoaded %d samples x %d allele calls\n", nrow, ncol);
 
-  // build an output matrix (one dimensional j*nrow+i access)
-  int* dist = calloc_safe(nrow*nrow, sizeof(int));
-  
-  #pragma omp parallel for schedule(static, 1)
-  for (int j=0; j < nrow; j++) {
-    if (!quiet && omp_get_thread_num()==0) {
-      fprintf(stderr, "\rCalculating distances: %.2f%%", (j+1)*100.0/nrow);
-    }
-    for (int i=0; i < j; i++) {
-      int d = distance(call[j], call[i], ncol, maxdiff);
-      dist[j*nrow+i] = dist[i*nrow+j] = d;  // matrix is diagonal symetric
-    }
-  }
-  if (!quiet) fprintf(stderr, "\nWriting distance matrix to stdout...\n");
+  // build one output row at a time instead of storing the full square matrix
+  int* dist = nrow > 0 ? calloc_safe(nrow, sizeof(int)) : NULL;
+
+  if (!quiet) fprintf(stderr, "Writing distance matrix to stdout...\n");
 
   // separator choice
  
@@ -253,14 +248,24 @@ int main(int argc, char* argv[])
 
   // Print matrix
   for (int j=0; j < nrow; j++) {
-    printf("%s", id[j]);
+    if (!quiet) {
+      fprintf(stderr, "\rCalculating distances: %.2f%%", (j+1)*100.0/nrow);
+    }
     int start = (mode & 1) ?    0 : j   ;  // upper?
     int end   = (mode & 2) ? nrow : j+1 ;  // lower?
+
+    #pragma omp parallel for schedule(static, 1)
     for (int i=start; i < end; i++) {
-      printf("%c%d", sep, dist[j*nrow + i]);
+      dist[i] = (i == j) ? 0 : distance(call[j], call[i], ncol, maxdiff);
+    }
+
+    printf("%s", id[j]);
+    for (int i=start; i < end; i++) {
+      printf("%c%d", sep, dist[i]);
     }
     printf("\n");
   }
+  if (!quiet) fprintf(stderr, "\n");
 
   // free RAM
   for (int i=0; i < nrow; i++) {
@@ -278,4 +283,3 @@ int main(int argc, char* argv[])
 }
 
 //------------------------------------------------------------------------
-
