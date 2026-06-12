@@ -59,7 +59,7 @@ void* calloc_safe(size_t nmemb, size_t size)
 {
   void* ptr = calloc(nmemb, size);
   if (ptr == NULL) {
-    fprintf(stderr, "ERROR: could not allocate %ld kb RAM\n", (nmemb*size)>>10);
+    fprintf(stderr, "ERROR: could not allocate %zu kb RAM\n", (nmemb*size)>>10);
     exit(EXIT_FAILURE);
   }
   return ptr;
@@ -193,7 +193,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
           }
           id[row] = strdup(s);
-          call[row] = (int*) calloc_safe(ncol, sizeof(int*));
+          call[row] = (int*) calloc_safe(ncol, sizeof(int));
         }
         else {
           // INF-xxxx are returned as -ve numbers
@@ -227,7 +227,7 @@ int main(int argc, char* argv[])
   if (!quiet) fprintf(stderr, "\rLoaded %d samples x %d allele calls\n", nrow, ncol);
 
   // build an output matrix (one dimensional j*nrow+i access)
-  int* dist = calloc_safe(nrow*nrow, sizeof(int));
+  int* dist = calloc_safe((size_t)nrow*nrow, sizeof(int));
   
   #pragma omp parallel for schedule(static, 1)
   for (int j=0; j < nrow; j++) {
@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
     }
     for (int i=0; i < j; i++) {
       int d = distance(call[j], call[i], ncol, maxdiff);
-      dist[j*nrow+i] = dist[i*nrow+j] = d;  // matrix is diagonal symetric
+      dist[(size_t)j*nrow+i] = dist[(size_t)i*nrow+j] = d;  // matrix is diagonal symetric
     }
   }
   if (!quiet) fprintf(stderr, "\nWriting distance matrix to stdout...\n");
@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
     int start = (mode & 1) ?    0 : j   ;  // upper?
     int end   = (mode & 2) ? nrow : j+1 ;  // lower?
     for (int i=start; i < end; i++) {
-      printf("%c%d", sep, dist[j*nrow + i]);
+      printf("%c%d", sep, dist[(size_t)j*nrow + i]);
     }
     printf("\n");
   }
