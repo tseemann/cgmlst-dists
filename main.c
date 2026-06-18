@@ -201,6 +201,10 @@ int main(int argc, char* argv[])
           call[row] = (int*) calloc_safe(ncol, sizeof(int));
         }
         else {
+          if (col >= ncol) {
+            fprintf(stderr, "\nERROR: row %d has more columns than expected %d\n", row+1, ncol);
+            exit(EXIT_FAILURE);
+          }
           // INF-xxxx are returned as -ve numbers
           call[row][col] = abs( atoi(s) );
         }
